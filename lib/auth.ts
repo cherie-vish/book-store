@@ -17,7 +17,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const password = credentials.password as string
         
         const user = await db.select().from(users).where(eq(users.email, email))
-        
         if (!user[0]) return null
         
         const isValid = await bcrypt.compare(password, user[0].password)
@@ -45,6 +44,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   pages: {
     signIn: "/login",
-    newUser: "/register",
   },
 })
