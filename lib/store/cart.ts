@@ -6,7 +6,7 @@ interface CartItem {
   name: string;
   price: number;
   quantity: number;
-  image: string;
+  image: string | null;
 }
 
 interface CartStore {
@@ -18,7 +18,8 @@ interface CartStore {
   clearCart: () => void;
   addToWishlist: (id: number) => void;
   removeFromWishlist: (id: number) => void;
-  total: () => number;
+  totalItems: () => number;
+  totalPrice: () => number;
 }
 
 export const useCartStore = create<CartStore>()(
@@ -26,6 +27,7 @@ export const useCartStore = create<CartStore>()(
     (set, get) => ({
       items: [],
       wishlist: [],
+      
       addItem: (item) => {
         const existing = get().items.find(i => i.id === item.id);
         if (existing) {
@@ -38,7 +40,9 @@ export const useCartStore = create<CartStore>()(
           set({ items: [...get().items, { ...item, quantity: 1 }] });
         }
       },
+      
       removeItem: (id) => set({ items: get().items.filter(i => i.id !== id) }),
+      
       updateQuantity: (id, quantity) => {
         if (quantity <= 0) {
           get().removeItem(id);
@@ -46,10 +50,16 @@ export const useCartStore = create<CartStore>()(
           set({ items: get().items.map(i => i.id === id ? { ...i, quantity } : i) });
         }
       },
+      
       clearCart: () => set({ items: [] }),
+      
       addToWishlist: (id) => set({ wishlist: [...get().wishlist, id] }),
+      
       removeFromWishlist: (id) => set({ wishlist: get().wishlist.filter(i => i !== id) }),
-      total: () => get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+      
+      totalItems: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
+      
+      totalPrice: () => get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
     }),
     { name: 'cart-storage' }
   )

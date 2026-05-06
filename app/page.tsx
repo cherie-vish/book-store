@@ -1,7 +1,18 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { db } from '@/lib/db';
+import { products } from '@/lib/db/schema';
+import { desc } from 'drizzle-orm';
+import { ProductCard } from '@/components/ProductCard';
 
-export default function Home() {
+async function getFeaturedProducts() {
+  const allProducts = await db.select().from(products).orderBy(desc(products.createdAt)).limit(4);
+  return allProducts;
+}
+
+export default async function Home() {
+  const featuredProducts = await getFeaturedProducts();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -18,18 +29,17 @@ export default function Home() {
       {/* Featured Books */}
       <section className="max-w-7xl mx-auto px-4 py-16">
         <h2 className="text-3xl font-bold mb-8">Featured Books</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="bg-white rounded-lg shadow p-4">
-              <div className="bg-gray-200 h-48 rounded mb-4 flex items-center justify-center">
-                📚
-              </div>
-              <h3 className="font-semibold">Book Title {i}</h3>
-              <p className="text-gray-600">$19.99</p>
-              <Button className="w-full mt-2">Add to Cart</Button>
-            </div>
-          ))}
-        </div>
+        {featuredProducts.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-lg">
+            <p className="text-gray-500">No products yet. Admin can add products from the admin panel.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {featuredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
