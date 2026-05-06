@@ -54,6 +54,19 @@ export const wishlist = pgTable('wishlist', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Add after existing tables
+export const reviews = pgTable('reviews', {
+  id: serial('id').primaryKey(),
+  productId: integer('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  userName: text('user_name').notNull(),
+  rating: integer('rating').notNull(), // 1-5
+  comment: text('comment'),
+  approved: boolean('approved').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type Review = typeof reviews.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
