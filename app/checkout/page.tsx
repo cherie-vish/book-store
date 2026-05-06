@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
 
@@ -21,8 +21,15 @@ export default function CheckoutPage() {
     address: '',
   });
 
+  // 👇 Move the redirect to useEffect
+  useEffect(() => {
+    if (items.length === 0) {
+      router.push('/cart');
+    }
+  }, [items.length, router]);
+
+  // Don't render anything if redirecting
   if (items.length === 0) {
-    router.push('/cart');
     return null;
   }
 
@@ -30,7 +37,7 @@ export default function CheckoutPage() {
     e.preventDefault();
     setLoading(true);
 
-    const order = {
+    const orderData = {
       customerName: form.name,
       customerEmail: form.email,
       customerPhone: form.phone,
@@ -48,7 +55,7 @@ export default function CheckoutPage() {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(order),
+        body: JSON.stringify(orderData),
       });
 
       if (res.ok) {
@@ -56,7 +63,8 @@ export default function CheckoutPage() {
         toast.success('Order placed successfully!');
         router.push('/');
       } else {
-        toast.error('Failed to place order');
+        const error = await res.json();
+        toast.error(error.error || 'Failed to place order');
       }
     } catch (error) {
       toast.error('Something went wrong');

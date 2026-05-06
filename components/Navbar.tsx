@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Heart, User } from 'lucide-react';
+import { ShoppingCart, Heart, User, LogOut } from 'lucide-react';
 import { useCartStore } from '@/lib/store/cart';
 import { useEffect, useState } from 'react';
 
@@ -53,6 +53,16 @@ export function Navbar() {
                   </Button>
                 </Link>
               )}
+              {/* Sign Out Button */}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => signOut({ callbackUrl: '/' })}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <LogOut className="h-4 w-4 mr-1" />
+                Sign Out
+              </Button>
             </div>
           ) : (
             <Link href="/login">
