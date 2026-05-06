@@ -32,10 +32,13 @@ export const orders = pgTable('orders', {
   customerPhone: text('customer_phone'),
   customerAddress: text('customer_address').notNull(),
   total: real('total').notNull(),
-  status: text('status').default('pending').notNull(), // pending, paid, shipped, delivered, cancelled
+  status: text('status').default('pending').notNull(),
+  trackingNumber: text('tracking_number'),
+  estimatedDelivery: timestamp('estimated_delivery'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Also add to your existing orders definition
 // Order Items table
 export const orderItems = pgTable('order_items', {
   id: serial('id').primaryKey(),
