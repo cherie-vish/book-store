@@ -1,57 +1,38 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useCartStore } from '@/lib/store/cart';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useSession } from 'next-auth/react';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
-export default function CheckoutPage() {
-  const router = useRouter();
-  const { data: session } = useSession();
-  const { items, totalPrice, clearCart } = useCartStore();
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY!);
+
+function PaymentForm({ amount, orderData, onSuccess, clientSecret }: { amount: number; orderData: any; onSuccess: () => void; clientSecret: string }) {
+  const stripe = useStripe();
+  const elements = useElements();
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    name: session?.user?.name || '',
-    email: session?.user?.email || '',
-    phone: '',
-    address: '',
-  });
-
-  // 👇 Move the redirect to useEffect
-  useEffect(() => {
-    if (items.length === 0) {
-      router.push('/cart');
-    }
-  }, [items.length, router]);
-
-  // Don't render anything if redirecting
-  if (items.length === 0) {
-    return null;
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!stripe || !elements) return;
+
     setLoading(true);
 
-    const orderData = {
-      customerName: form.name,
-      customerEmail: form.email,
-      customerPhone: form.phone,
-      customerAddress: form.address,
-      total: totalPrice(),
-      items: items.map(item => ({
-        productId: item.id,
-        productName: item.name,
-        quantity: item.quantity,
-        price: item.price,
-      })),
-    };
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      redirect: 'if_required',
+    });
 
-    try {
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+    } else if (paymentIntent?.status === 'succeeded') {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -59,30 +40,97 @@ export default function CheckoutPage() {
       });
 
       if (res.ok) {
-        clearCart();
-        toast.success('Order placed successfully!');
-        router.push('/');
+        toast.success('Payment successful! Order placed.');
+        onSuccess();
       } else {
-        const error = await res.json();
-        toast.error(error.error || 'Failed to place order');
+        toast.error('Order failed, but payment succeeded. Contact support.');
       }
-    } catch (error) {
-      toast.error('Something went wrong');
-    } finally {
       setLoading(false);
     }
   };
 
   return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement />
+      <Button type="submit" disabled={!stripe || loading} className="w-full">
+        {loading ? 'Processing...' : `Pay $${amount.toFixed(2)}`}
+      </Button>
+    </form>
+  );
+}
+
+export default function CheckoutPage() {
+  const router = useRouter();
+  const { data: session } = useSession();
+  const { items, totalPrice, clearCart } = useCartStore();
+  const [clientSecret, setClientSecret] = useState('');
+  const [loadingSecret, setLoadingSecret] = useState(false);
+  const [form, setForm] = useState({
+    name: session?.user?.name || '',
+    email: session?.user?.email || '',
+    phone: '',
+    address: '',
+  });
+
+  useEffect(() => {
+    if (items.length === 0) {
+      router.push('/cart');
+    }
+  }, [items.length, router]);
+
+  useEffect(() => {
+    if (items.length > 0 && totalPrice() > 0) {
+      setLoadingSecret(true);
+      fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: totalPrice(), orderId: Date.now().toString() }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          setClientSecret(data.clientSecret);
+          setLoadingSecret(false);
+        })
+        .catch(err => {
+          console.error('Failed to get client secret:', err);
+          toast.error('Payment setup failed');
+          setLoadingSecret(false);
+        });
+    }
+  }, [items.length, totalPrice]);
+
+  if (items.length === 0) return null;
+
+  const orderData = {
+    customerName: form.name,
+    customerEmail: form.email,
+    customerPhone: form.phone,
+    customerAddress: form.address,
+    total: totalPrice(),
+    items: items.map(item => ({
+      productId: item.id,
+      productName: item.name,
+      quantity: item.quantity,
+      price: item.price,
+    })),
+  };
+
+  const handlePaymentSuccess = () => {
+    clearCart();
+    router.push('/order-success');
+  };
+
+  const isFormValid = form.name && form.email && form.address;
+
+  return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Checkout</h1>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Billing Form */}
         <Card>
           <CardContent className="p-6">
             <h3 className="text-xl font-bold mb-4">Billing Details</h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-4">
               <Input
                 placeholder="Full Name *"
                 value={form.name}
@@ -107,31 +155,37 @@ export default function CheckoutPage() {
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
                 required
               />
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Placing Order...' : 'Place Order'}
-              </Button>
-            </form>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Order Summary */}
         <Card>
           <CardContent className="p-6">
-            <h3 className="text-xl font-bold mb-4">Your Order</h3>
-            <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
-              {items.map((item) => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <span>{item.name} x{item.quantity}</span>
-                  <span>${(item.price * item.quantity).toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="border-t pt-3">
-              <div className="flex justify-between font-bold">
-                <span>Total</span>
+            <h3 className="text-xl font-bold mb-4">Payment</h3>
+            <div className="mb-4 p-3 bg-gray-50 rounded">
+              <div className="flex justify-between font-semibold">
+                <span>Total Amount:</span>
                 <span>${totalPrice().toFixed(2)}</span>
               </div>
             </div>
+
+            {loadingSecret && <div className="text-center py-4">Loading payment form...</div>}
+
+            {!loadingSecret && clientSecret && isFormValid && (
+              <Elements stripe={stripePromise} options={{ clientSecret }}>
+                <PaymentForm amount={totalPrice()} orderData={orderData} onSuccess={handlePaymentSuccess} clientSecret={clientSecret} />
+              </Elements>
+            )}
+
+            {!loadingSecret && !clientSecret && <div className="text-center py-4 text-red-500">Failed to load payment. Refresh and try again.</div>}
+
+            {!isFormValid && (
+              <div className="text-center py-4 text-yellow-600 text-sm">Please fill all billing details to proceed with payment.</div>
+            )}
+
+            <p className="text-xs text-gray-500 mt-4 text-center">
+              Test mode: Use card 4242 4242 4242 4242, any future expiry, any CVC
+            </p>
           </CardContent>
         </Card>
       </div>
