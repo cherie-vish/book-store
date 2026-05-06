@@ -1,22 +1,30 @@
 import { db } from '@/lib/db';
-import { products } from '@/lib/db/schema';
+import { products, reviews } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { AddToCartButton } from '@/components/AddToCartButton';
+import { ReviewSection } from '@/components/ReviewSection';
 
 async function getProduct(id: number) {
   const product = await db.select().from(products).where(eq(products.id, id));
   return product[0];
 }
 
+async function getReviews(productId: number) {
+  const productReviews = await db.select().from(reviews).where(eq(reviews.productId, productId));
+  return productReviews;
+}
+
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const product = await getProduct(parseInt(id));
+  const reviews = await getReviews(parseInt(id));
+  
+  const avgRating = reviews.length > 0 
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length 
+    : 0;
 
-  if (!product) {
-    notFound();
-  }
+  if (!product) notFound();
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -38,6 +46,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <AddToCartButton product={product} />
         </div>
       </div>
+      
+      <ReviewSection productId={product.id} initialReviews={reviews} initialRating={avgRating} />
     </div>
   );
 }
