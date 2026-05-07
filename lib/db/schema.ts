@@ -10,13 +10,13 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Products table
 export const products = pgTable('products', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description'),
   price: real('price').notNull(),
   stock: integer('stock').default(0).notNull(),
+  lowStockThreshold: integer('low_stock_threshold').default(5).notNull(),
   image: text('image'),
   category: text('category').default('other').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
