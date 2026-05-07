@@ -1,28 +1,13 @@
-import { db } from '@/lib/db';
-import { products, orders, users } from '@/lib/db/schema';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, ShoppingCart, Users, DollarSign, AlertTriangle } from 'lucide-react';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StockAlert } from '@/components/admin/StockAlert';
+import { SalesAnalytics } from '@/components/admin/SalesAnalytics';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Package, ShoppingCart, Users, DollarSign } from 'lucide-react';
 
-async function getStats() {
-  const totalProducts = await db.select().from(products);
-  const totalOrders = await db.select().from(orders);
-  const totalUsers = await db.select().from(users);
-  const totalRevenue = totalOrders.reduce((sum, order) => sum + order.total, 0);
-  const lowStockProducts = totalProducts.filter(p => p.stock <= (p.lowStockThreshold || 5)).length;
-  
-  return {
-    products: totalProducts.length,
-    orders: totalOrders.length,
-    users: totalUsers.length,
-    revenue: totalRevenue,
-    lowStock: lowStockProducts,
-  };
-}
-
-export default async function AdminDashboard() {
-  const stats = await getStats();
-
+function StatsCards({ stats }: { stats: any }) {
   const cards = [
     { title: 'Total Products', value: stats.products, icon: Package, color: 'bg-blue-500' },
     { title: 'Total Orders', value: stats.orders, icon: ShoppingCart, color: 'bg-green-500' },
@@ -31,41 +16,57 @@ export default async function AdminDashboard() {
   ];
 
   return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {cards.map((card) => (
+        <Card key={card.title}>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">{card.title}</CardTitle>
+            <div className={`${card.color} p-2 rounded-full text-white`}>
+              <card.icon className="h-4 w-4" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{card.value}</div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+export default function AdminDashboard() {
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/admin/stats')
+      .then(res => res.json())
+      .then(setStats);
+  }, []);
+
+  if (!stats) {
+    return <div className="text-center py-10">Loading...</div>;
+  }
+
+  return (
     <div>
       <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
       
-      {/* Stock Alert Banner */}
-      {stats.lowStock > 0 && (
-        <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-yellow-600" />
-            <p className="text-yellow-800">
-              {stats.lowStock} product{stats.lowStock !== 1 ? 's are' : ' is'} running low on stock.
-            </p>
-          </div>
-        </div>
-      )}
+      <StatsCards stats={stats} />
       
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {cards.map((card) => (
-          <Card key={card.title}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">{card.title}</CardTitle>
-              <div className={`${card.color} p-2 rounded-full text-white`}>
-                <card.icon className="h-4 w-4" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{card.value}</div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="mt-8">
+        <Tabs defaultValue="analytics">
+          <TabsList className="mb-6">
+            <TabsTrigger value="analytics">Sales Analytics</TabsTrigger>
+            <TabsTrigger value="stock">Stock Alerts</TabsTrigger>
+          </TabsList>
+          <TabsContent value="analytics">
+            <SalesAnalytics />
+          </TabsContent>
+          <TabsContent value="stock">
+            <StockAlert />
+          </TabsContent>
+        </Tabs>
       </div>
-      
-      {/* Stock Alerts Section */}
-      <h2 className="text-2xl font-bold mb-4">Stock Alerts</h2>
-      <StockAlert />
     </div>
   );
 }
