@@ -69,8 +69,35 @@ export const reviews = pgTable('reviews', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-export type Review = typeof reviews.$inferSelect;
+// Blog Categories table
+export const blogCategories = pgTable('blog_categories', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  slug: text('slug').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Blog Posts table
+export const blogPosts = pgTable('blog_posts', {
+  id: serial('id').primaryKey(),
+  title: text('title').notNull(),
+  slug: text('slug').notNull().unique(),
+  excerpt: text('excerpt'),
+  content: text('content').notNull(),
+  featuredImage: text('featured_image'),
+  categoryId: integer('category_id').references(() => blogCategories.id),
+  authorId: integer('author_id').references(() => users.id),
+  status: text('status').default('draft').notNull(), // draft, published
+  views: integer('views').default(0),
+  publishedAt: timestamp('published_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
-export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
+export type Review = typeof reviews.$inferSelect;
+export type Product = typeof products.$inferSelect;
+export type BlogPost = typeof blogPosts.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
+export type BlogCategory = typeof blogCategories.$inferSelect;

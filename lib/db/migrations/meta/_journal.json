@@ -29,6 +29,13 @@
       "when": 1778177217891,
       "tag": "0003_lying_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778237171014,
+      "tag": "0004_sleepy_jack_flag",
+      "breakpoints": true
     }
   ]
 }
