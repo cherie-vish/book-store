@@ -28,6 +28,12 @@ export function Navbar() {
             Shop
           </Link>
 
+          {session && (
+            <Link href="/my-orders" className="text-gray-600 hover:text-blue-600 transition-colors">
+              My Orders
+            </Link>
+          )}
+
           <Link href="/track-order" className="text-gray-600 hover:text-blue-600 transition-colors">
             Track Order
           </Link>

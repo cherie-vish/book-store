@@ -102,6 +102,7 @@ export default function CheckoutPage() {
   if (items.length === 0) return null;
 
   const orderData = {
+    userId: session?.user?.id ? parseInt(session.user.id) : null,
     customerName: form.name,
     customerEmail: form.email,
     customerPhone: form.phone,
