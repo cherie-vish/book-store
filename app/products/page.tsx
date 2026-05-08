@@ -64,6 +64,14 @@ export default function ProductsPage() {
     setFilteredProducts(filtered);
   }, [searchTerm, category, sortBy, priceRange, products]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const searchQuery = params.get('search');
+    if (searchQuery) {
+      setSearchTerm(searchQuery);
+    }
+  }, []);
+
   const categories = ['all', 'fiction', 'self-help', 'sci-fi', 'biography', 'finance', 'romance', 'thriller', 'psychology', 'historical', 'spirituality', 'fantasy'];
 
   const clearFilters = () => {
