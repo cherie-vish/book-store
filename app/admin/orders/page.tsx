@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Package } from 'lucide-react';
+import { Package, FileText } from 'lucide-react';
 
 interface Order {
   id: number;
@@ -156,6 +156,9 @@ export default function OrdersPage() {
                 <Button variant="outline" size="sm" onClick={() => openTrackingDialog(order)}>
                   <Package className="h-4 w-4 mr-1" />
                   Tracking
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => window.open(`/api/orders/${order.id}/invoice`, '_blank')}>
+                  <FileText className="h-4 w-4" />
                 </Button>
               </TableCell>
             </TableRow>
