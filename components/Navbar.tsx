@@ -42,7 +42,10 @@ export function Navbar() {
                 My Orders
               </Link>
             )}
-
+            
+            <Link href="/blog" className="text-gray-600 hover:text-blue-600 transition-colors">
+              Blog
+            </Link>
             <Link href="/wishlist" className="text-gray-600 hover:text-blue-600 transition-colors">
               <Heart className="h-5 w-5" />
             </Link>
